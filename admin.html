@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Add right after the existing meta tags -->
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#4CAF50">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<!-- Add this right before the closing </body> tag -->
+<script>
+  // Register the service worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('sw.js').then(function(registration) {
+        console.log('ServiceWorker registered with scope: ', registration.scope);
+      }).catch(function(error) {
+        console.log('ServiceWorker registration failed: ', error);
+      });
+    });
+  }
+</script>
+    <title>Admin Portal | Digital Record Of Work</title>
+    <style>
+        /* ========== RESET & BASE STYLES ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        #adminLogin { display: block; }
+        #adminDashboard { display: none; }
+        
+        .admin-login-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+        
+        .admin-logo h1 {
+            font-size: 2.5rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .admin-logo .pro { color: #667eea; font-weight: 700; }
+        .subtitle { color: #666; margin-bottom: 30px; font-size: 1.1rem; }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .form-group input:disabled, .form-group input[readonly] {
+            background: #f8f9fa;
+            color: #666;
+            cursor: not-allowed;
+        }
+        
+        .input-with-icon { position: relative; }
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        .btn-admin {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin: 20px 0;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-admin:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-secondary:hover { background: #5a6268; }
+        
+        /* DASHBOARD */
+        .admin-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 1200px;
+            overflow: hidden;
+            min-height: 80vh;
+        }
+        
+        .dashboard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .user-info { display: flex; align-items: center; gap: 20px; }
+        .user-avatar {
+            width: 60px; height: 60px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .user-info h2 { font-size: 1.8rem; margin-bottom: 5px; }
+        .user-info p { opacity: 0.9; margin-bottom: 5px; }
+        .role-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .btn-logout {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-logout:hover { background: rgba(255,255,255,0.3); }
+        
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .stat-icon {
+            width: 50px; height: 50px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+        .stat-content h3 { font-size: 2rem; color: #333; margin-bottom: 5px; }
+        .stat-content p { color: #666; font-size: 14px; }
+        
+        .dashboard-buttons {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .action-btn {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: #333;
+        }
+        .action-btn:hover {
+            background: #e9ecef;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        .action-btn.primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: transparent;
+        }
+        .action-btn.primary:hover { background: linear-gradient(135deg, #5a6fd8, #6a4190); }
+        .action-btn i { font-size: 24px; }
+        
+        .admin-section {
+            padding: 30px;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .section-header h2 {
+            font-size: 1.8rem;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-add {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        .btn-add:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        .search-bar {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 14px 50px 14px 20px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+        .search-bar i {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #667eea;
+        }
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid #eee;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        th, td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        tr:hover { background: #f8f9fa; }
+        .btn-action {
+            background: #e9ecef;
+            border: none;
+            width: 36px; height: 36px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0 4px;
+            color: #495057;
+            transition: all 0.3s;
+        }
+        .btn-action:hover { background: #dee2e6; }
+        .btn-action.delete { color: #dc3545; }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-badge.active { background: #d4edda; color: #155724; }
+        .status-badge.inactive { background: #f8d7da; color: #721c24; }
+        .status-badge.pending { background: #fff3cd; color: #856404; }
+        
+        .code-badge {
+            background: #e9ecef;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        /* MODAL STYLES */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+        }
+        .modal {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+        @keyframes modalSlideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal-header {
+            padding: 20px 30px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 16px 16px 0 0;
+        }
+        .modal-header h3 { margin: 0; display: flex; align-items: center; gap: 10px; }
+        .close-modal {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .close-modal:hover { background: rgba(255,255,255,0.3); }
+        .modal-body { padding: 30px; }
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        /* NOTIFICATION */
+        .notification {
+            position: fixed;
+            top: 20px; right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .notification.success { background: linear-gradient(135deg, #4CAF50, #45a049); }
+        .notification.error { background: linear-gradient(135deg, #f44336, #d32f2f); }
+        .notification.info { background: linear-gradient(135deg, #2196F3, #1976d2); }
+        .notification button {
+            background: none; border: none; color: white; font-size: 20px; cursor: pointer; margin-left: 10px;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .btn-reset {
+            background: #ff9800;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+        .btn-reset:hover { background: #fb8c00; }
+    </style>
+</head>
+<body>
+    <!-- Admin Login Screen -->
+    <div id="adminLogin">
+        <div class="admin-login-card">
+            <div class="admin-logo">
+                <h1>Digital Record<span class="pro">Of Work</span></h1>
+                <p class="subtitle">Administrator Portal</p>
+            </div>
+            
+            <div class="login-form">
+                <div class="form-group">
+                    <label><i class="fas fa-user-shield"></i> Admin Username</label>
+                    <input type="text" id="adminUsername" placeholder="Enter admin username" value="admin">
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Admin Password</label>
+                    <div class="input-with-icon">
+                        <input type="password" id="adminPassword" placeholder="Enter admin password" value="admin123">
+                        <button class="toggle-password" id="togglePasswordBtn">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <button class="btn-admin" id="loginBtn">
+                    <i class="fas fa-sign-in-alt"></i> Login as Administrator
+                </button>
+                
+                <button class="btn-secondary" id="backBtn">
+                    <i class="fas fa-arrow-left"></i> Back to Main App
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard">
+        <div class="admin-container">
+            <div class="dashboard-header">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div>
+                        <h2 id="adminWelcome">Welcome, Administrator</h2>
+                        <p>System Management Portal</p>
+                        <div class="user-meta">
+                            <span class="role-badge">Administrator</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-logout" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+            
+            <div class="quick-stats">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-school"></i></div>
+                    <div class="stat-content">
+                        <h3 id="adminSchoolsCount">0</h3>
+                        <p>Schools</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div class="stat-content">
+                        <h3 id="adminUsersCount">0</h3>
+                        <p>Total Users</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+                    <div class="stat-content">
+                        <h3 id="adminRecordsCount">0</h3>
+                        <p>Records</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+                    <div class="stat-content">
+                        <h3 id="adminActivityCount">0</h3>
+                        <p>Today's Activity</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dashboard-buttons">
+                <button class="action-btn primary" id="manageSchoolsBtn">
+                    <i class="fas fa-school"></i> Manage Schools
+                </button>
+                <button class="action-btn" id="manageSubjectsBtn">
+                    <i class="fas fa-book"></i> Manage Subjects
+                </button>
+                <button class="action-btn" id="manageUsersBtn">
+                    <i class="fas fa-users"></i> Manage Users
+                </button>
+                <button class="action-btn" id="systemSettingsBtn">
+                    <i class="fas fa-cog"></i> System Settings
+                </button>
+                <button class="action-btn" id="reportsBtn">
+                    <i class="fas fa-chart-bar"></i> Reports
+                </button>
+            </div>
+            
+            <!-- Reset Demo Data Button -->
+            <div style="padding: 0 30px 30px;">
+                <button class="btn-reset" id="resetDemoBtn">
+                    <i class="fas fa-undo-alt"></i> Reset Demo Data
+                </button>
+            </div>
+            
+            <!-- Schools Management Container -->
+            <div id="schoolsContainer" class="admin-section" style="display: none;"></div>
+            <!-- Subjects Management Container -->
+            <div id="subjectsContainer" class="admin-section" style="display: none;"></div>
+            <!-- Users Management Container -->
+            <div id="usersContainer" class="admin-section" style="display: none;"></div>
+            <!-- System Settings Container -->
+            <div id="settingsContainer" class="admin-section" style="display: none;"></div>
+            <!-- Reports Container -->
+            <div id="reportsContainer" class="admin-section" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Font Awesome -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+    <script>
+        // ============================================
+        // ADMIN PORTAL - FULLY FUNCTIONAL - FIXED VERSION
+        // ============================================
+        console.log("🚀 Admin Portal Loaded - FIXED VERSION");
+
+        // DOM elements
+        const adminLogin = document.getElementById('adminLogin');
+        const adminDashboard = document.getElementById('adminDashboard');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const backBtn = document.getElementById('backBtn');
+        const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+        const resetDemoBtn = document.getElementById('resetDemoBtn');
+
+        // Dashboard buttons
+        const manageSchoolsBtn = document.getElementById('manageSchoolsBtn');
+        const manageSubjectsBtn = document.getElementById('manageSubjectsBtn');
+        const manageUsersBtn = document.getElementById('manageUsersBtn');
+        const systemSettingsBtn = document.getElementById('systemSettingsBtn');
+        const reportsBtn = document.getElementById('reportsBtn');
+
+        // Admin credentials
+        const ADMIN_USERNAME = "admin";
+        const ADMIN_PASSWORD = "admin123";
+
+        // Storage keys
+        const STORAGE_KEYS = {
+            SCHOOLS: 'schools',
+            SUBJECTS: 'subjects',
+            USERS: 'users',
+            RECORDS: 'records',
+            ACTIVITY: 'admin_activity'
+        };
+
+        // Fixed departments (global)
+        const DEPARTMENTS = ["Mathematics", "Languages", "Science", "Humanities", "Technical"];
+
+        // ========== INITIALIZATION ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("📦 Admin Portal initializing...");
+            initializeDefaultData();
+            if (localStorage.getItem('admin_logged_in') === 'true') {
+                showDashboard();
+            }
+            setupEventListeners();
+        });
+
+        function initializeDefaultData() {
+            // Subjects (23 KCSE subjects with department categories)
+            if (!localStorage.getItem(STORAGE_KEYS.SUBJECTS)) {
+                const kcseSubjects = [
+                    { id: '1', code: 'MATH', name: 'Mathematics', category: 'Mathematics', status: 'active' },
+                    { id: '2', code: 'ENG', name: 'English', category: 'Languages', status: 'active' },
+                    { id: '3', code: 'KISW', name: 'Kiswahili', category: 'Languages', status: 'active' },
+                    { id: '4', code: 'BIO', name: 'Biology', category: 'Science', status: 'active' },
+                    { id: '5', code: 'CHEM', name: 'Chemistry', category: 'Science', status: 'active' },
+                    { id: '6', code: 'PHYS', name: 'Physics', category: 'Science', status: 'active' },
+                    { id: '7', code: 'HIST', name: 'History and Government', category: 'Humanities', status: 'active' },
+                    { id: '8', code: 'GEOG', name: 'Geography', category: 'Humanities', status: 'active' },
+                    { id: '9', code: 'CRE', name: 'Christian Religious Education', category: 'Humanities', status: 'active' },
+                    { id: '10', code: 'IRE', name: 'Islamic Religious Education', category: 'Humanities', status: 'active' },
+                    { id: '11', code: 'HRE', name: 'Hindu Religious Education', category: 'Humanities', status: 'active' },
+                    { id: '12', code: 'BUS', name: 'Business Studies', category: 'Technical', status: 'active' },
+                    { id: '13', code: 'AGR', name: 'Agriculture', category: 'Technical', status: 'active' },
+                    { id: '14', code: 'HOME', name: 'Home Science', category: 'Technical', status: 'active' },
+                    { id: '15', code: 'COMP', name: 'Computer Studies', category: 'Technical', status: 'active' },
+                    { id: '16', code: 'ART', name: 'Art and Design', category: 'Technical', status: 'active' },
+                    { id: '17', code: 'MUSIC', name: 'Music', category: 'Technical', status: 'active' },
+                    { id: '18', code: 'FRE', name: 'French', category: 'Languages', status: 'active' },
+                    { id: '19', code: 'GER', name: 'German', category: 'Languages', status: 'active' },
+                    { id: '20', code: 'ARAB', name: 'Arabic', category: 'Languages', status: 'active' },
+                    { id: '21', code: 'SIGN', name: 'Sign Language', category: 'Languages', status: 'active' },
+                    { id: '22', code: 'WOOD', name: 'Woodwork', category: 'Technical', status: 'active' },
+                    { id: '23', code: 'METAL', name: 'Metalwork', category: 'Technical', status: 'active' }
+                ];
+                localStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(kcseSubjects));
+            }
+
+            // Schools with subjects assigned (default two schools)
+            if (!localStorage.getItem(STORAGE_KEYS.SCHOOLS)) {
+                const globalSubjects = JSON.parse(localStorage.getItem(STORAGE_KEYS.SUBJECTS)).map(s => s.name);
+                const defaultSchools = [
+                    { id: Date.now().toString(), code: 'SCH001', name: 'Greenwood High School', address: '123 Main Street', contact: '+1 (555) 123-4567', email: 'info@greenwood.edu', status: 'active', subjects: globalSubjects, createdAt: new Date().toISOString() },
+                    { id: (Date.now()+1).toString(), code: 'SCH002', name: 'Sunrise Academy', address: '456 Oak Avenue', contact: '+1 (555) 987-6543', email: 'contact@sunrise.edu', status: 'active', subjects: globalSubjects, createdAt: new Date().toISOString() }
+                ];
+                localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify(defaultSchools));
+            }
+
+            // Users and records are created via main app; we can seed some demo accounts later if needed
+            if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
+                localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify([]));
+            }
+            if (!localStorage.getItem(STORAGE_KEYS.RECORDS)) {
+                localStorage.setItem(STORAGE_KEYS.RECORDS, JSON.stringify([]));
+            }
+            if (!localStorage.getItem(STORAGE_KEYS.ACTIVITY)) {
+                localStorage.setItem(STORAGE_KEYS.ACTIVITY, JSON.stringify([]));
+            }
+        }
+
+        // ========== EVENT LISTENERS ==========
+        function setupEventListeners() {
+            loginBtn.addEventListener('click', handleLogin);
+            logoutBtn.addEventListener('click', handleLogout);
+            backBtn.addEventListener('click', () => { window.location.href = "index.html"; });
+            resetDemoBtn.addEventListener('click', resetDemoData);
+            
+            togglePasswordBtn.addEventListener('click', function() {
+                const pwd = document.getElementById('adminPassword');
+                const icon = this.querySelector('i');
+                if (pwd.type === 'password') {
+                    pwd.type = 'text';
+                    icon.className = 'fas fa-eye-slash';
+                } else {
+                    pwd.type = 'password';
+                    icon.className = 'fas fa-eye';
+                }
+            });
+            
+            manageSchoolsBtn.addEventListener('click', showSchoolsManagement);
+            manageSubjectsBtn.addEventListener('click', showSubjectsManagement);
+            manageUsersBtn.addEventListener('click', showUsersManagement);
+            systemSettingsBtn.addEventListener('click', showSystemSettings);
+            reportsBtn.addEventListener('click', showReports);
+        }
+
+        // ========== AUTHENTICATION ==========
+        function handleLogin() {
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+            if (!username || !password) {
+                showNotification('Please enter username and password', 'error');
+                return;
+            }
+            if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+                localStorage.setItem('admin_logged_in', 'true');
+                localStorage.setItem('admin_username', username);
+                showDashboard();
+                showNotification('Login successful!', 'success');
+                logActivity('Admin logged in');
+            } else {
+                showNotification('Invalid username or password', 'error');
+            }
+        }
+        
+        function handleLogout() {
+            localStorage.removeItem('admin_logged_in');
+            localStorage.removeItem('admin_username');
+            adminLogin.style.display = 'block';
+            adminDashboard.style.display = 'none';
+            document.getElementById('adminPassword').value = '';
+            showNotification('Logged out successfully', 'info');
+            logActivity('Admin logged out');
+        }
+
+        function showDashboard() {
+            adminLogin.style.display = 'none';
+            adminDashboard.style.display = 'block';
+            document.getElementById('adminWelcome').textContent = `Welcome, ${localStorage.getItem('admin_username') || 'Administrator'}`;
+            updateDashboardStats();
+        }
+
+        function updateDashboardStats() {
+            const schools = getSchools();
+            const users = getUsers();
+            const records = getRecords();
+            document.getElementById('adminSchoolsCount').textContent = schools.length;
+            document.getElementById('adminUsersCount').textContent = users.length;
+            document.getElementById('adminRecordsCount').textContent = records.length;
+            document.getElementById('adminActivityCount').textContent = getTodayActivityCount();
+        }
+
+        // ========== SCHOOLS MANAGEMENT ==========
+        function showSchoolsManagement() {
+            hideAllSections();
+            const container = document.getElementById('schoolsContainer');
+            container.style.display = 'block';
+            renderSchoolsTable();
+        }
+
+        function renderSchoolsTable() {
+            const container = document.getElementById('schoolsContainer');
+            const schools = getSchools();
+            container.innerHTML = `
+                <div class="section-header">
+                    <h2><i class="fas fa-school"></i> Manage Schools</h2>
+                    <button class="btn-add" id="addSchoolBtn"><i class="fas fa-plus"></i> Add New School</button>
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="schoolSearch" placeholder="Search schools..." onkeyup="searchSchools()">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>School Name</th>
+                                <th>Address</th>
+                                <th>Contact</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Subjects</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="schoolsTableBody">
+                            ${generateSchoolsRows(schools)}
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top:20px; text-align:center; color:#666;">Showing ${schools.length} schools</div>
+            `;
+            document.getElementById('addSchoolBtn').addEventListener('click', () => showAddSchoolModal(null));
+        }
+
+        function generateSchoolsRows(schools) {
+            if (!schools.length) return '<tr><td colspan="8" class="no-data">No schools found.</td></tr>';
+            return schools.map(s => `
+                <tr>
+                    <td><span class="code-badge">${s.code}</span></td>
+                    <td>${s.name}</td>
+                    <td>${s.address || '-'}</td>
+                    <td>${s.contact || '-'}</td>
+                    <td>${s.email || '-'}</td>
+                    <td><span class="status-badge ${s.status}">${s.status}</span></td>
+                    <td>${s.subjects ? s.subjects.length : 0} subjects</td>
+                    <td>
+                        <button class="btn-action" onclick="editSchool('${s.id}')" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button class="btn-action delete" onclick="deleteSchool('${s.id}')" title="Delete"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function showAddSchoolModal(existingSchool = null) {
+            const isEdit = existingSchool !== null;
+            const school = isEdit ? existingSchool : {};
+            const allSubjects = getSubjects(); // global subjects
+            let subjectCheckboxes = '';
+            allSubjects.forEach(sub => {
+                const checked = isEdit && school.subjects && school.subjects.includes(sub.name) ? 'checked' : '';
+                subjectCheckboxes += `
+                    <div style="margin-bottom:8px;">
+                        <label><input type="checkbox" class="subject-checkbox" value="${sub.name}" ${checked}> ${sub.name}</label>
+                    </div>
+                `;
+            });
+
+            const modalHTML = `
+                <div class="modal-overlay" id="schoolModal">
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-school"></i> ${isEdit ? 'Edit School' : 'Add New School'}</h3>
+                            <button class="close-modal" id="closeSchoolModalBtn">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="schoolForm">
+                                <div class="form-group">
+                                    <label>School Name *</label>
+                                    <input type="text" id="schoolName" required value="${school.name || ''}" placeholder="e.g. Chapter Boys High School">
+                                </div>
+                                <div class="form-group">
+                                    <label>School Code *</label>
+                                    <input type="text" id="schoolCode" required value="${school.code || ''}" placeholder="e.g. CHAP001" ${isEdit ? 'readonly' : ''}>
+                                    <small style="color:#666;">${isEdit ? 'Code cannot be changed.' : 'Unique code, cannot be changed later.'}</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>Address</label>
+                                    <input type="text" id="schoolAddress" value="${school.address || ''}" placeholder="Full address">
+                                </div>
+                                <div class="form-group">
+                                    <label>Contact Number</label>
+                                    <input type="text" id="schoolContact" value="${school.contact || ''}" placeholder="Phone number">
+                                </div>
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <input type="email" id="schoolEmail" value="${school.email || ''}" placeholder="Email address">
+                                </div>
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select id="schoolStatus">
+                                        <option value="active" ${school.status === 'active' ? 'selected' : ''}>Active</option>
+                                        <option value="inactive" ${school.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Select Subjects Offered *</label>
+                                    <div style="max-height:200px; overflow-y:auto; border:1px solid #ddd; padding:10px; border-radius:8px;">
+                                        ${subjectCheckboxes}
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" id="cancelSchoolModalBtn">Cancel</button>
+                            <button class="btn-admin" id="saveSchoolBtn">${isEdit ? 'Update School' : 'Save School'}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            
+            // Add event listeners
+            document.getElementById('closeSchoolModalBtn').addEventListener('click', closeModal);
+            document.getElementById('cancelSchoolModalBtn').addEventListener('click', closeModal);
+            document.getElementById('saveSchoolBtn').addEventListener('click', () => {
+                if (isEdit) {
+                    updateSchool(school.id);
+                } else {
+                    saveNewSchool();
+                }
+            });
+        }
+
+        function saveNewSchool() {
+            const code = document.getElementById('schoolCode').value.trim().toUpperCase();
+            const name = document.getElementById('schoolName').value.trim();
+            if (!code || !name) {
+                showNotification('School code and name are required', 'error');
+                return;
+            }
+            const schools = getSchools();
+            if (schools.find(s => s.code === code)) {
+                showNotification('School code already exists', 'error');
+                return;
+            }
+            const subjectCheckboxes = document.querySelectorAll('.subject-checkbox:checked');
+            const subjects = Array.from(subjectCheckboxes).map(cb => cb.value);
+            if (subjects.length === 0) {
+                showNotification('Select at least one subject', 'error');
+                return;
+            }
+            const newSchool = {
+                id: Date.now().toString(),
+                code,
+                name,
+                address: document.getElementById('schoolAddress').value.trim(),
+                contact: document.getElementById('schoolContact').value.trim(),
+                email: document.getElementById('schoolEmail').value.trim(),
+                status: document.getElementById('schoolStatus').value,
+                subjects,
+                createdAt: new Date().toISOString()
+            };
+            schools.push(newSchool);
+            localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify(schools));
+            closeModal();
+            showNotification(`School ${name} added successfully`, 'success');
+            logActivity(`Added school: ${name}`);
+            showSchoolsManagement();
+            updateDashboardStats();
+        }
+
+        function editSchool(id) {
+            const school = getSchools().find(s => String(s.id) === String(id));
+            if (school) {
+                showAddSchoolModal(school);
+            } else {
+                showNotification('School not found', 'error');
+            }
+        }
+
+        function updateSchool(id) {
+            const schools = getSchools();
+            const index = schools.findIndex(s => String(s.id) === String(id));
+            if (index === -1) {
+                showNotification('School not found', 'error');
+                return;
+            }
+            const name = document.getElementById('schoolName').value.trim();
+            if (!name) {
+                showNotification('School name is required', 'error');
+                return;
+            }
+            const subjectCheckboxes = document.querySelectorAll('.subject-checkbox:checked');
+            const subjects = Array.from(subjectCheckboxes).map(cb => cb.value);
+            if (subjects.length === 0) {
+                showNotification('Select at least one subject', 'error');
+                return;
+            }
+            schools[index] = {
+                ...schools[index],
+                name,
+                address: document.getElementById('schoolAddress').value.trim(),
+                contact: document.getElementById('schoolContact').value.trim(),
+                email: document.getElementById('schoolEmail').value.trim(),
+                status: document.getElementById('schoolStatus').value,
+                subjects,
+                updatedAt: new Date().toISOString()
+            };
+            localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify(schools));
+            closeModal();
+            showNotification('School updated successfully', 'success');
+            logActivity(`Updated school: ${name}`);
+            showSchoolsManagement();
+            updateDashboardStats();
+        }
+
+        function deleteSchool(id) {
+            if (!confirm('Delete this school? This will NOT delete users or records, but they will be orphaned.')) return;
+            let schools = getSchools();
+            schools = schools.filter(s => String(s.id) !== String(id));
+            localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify(schools));
+            showNotification('School deleted', 'success');
+            logActivity(`Deleted school ID: ${id}`);
+            showSchoolsManagement();
+            updateDashboardStats();
+        }
+
+        function searchSchools() {
+            const term = document.getElementById('schoolSearch')?.value.toLowerCase() || '';
+            const rows = document.querySelectorAll('#schoolsTableBody tr');
+            rows.forEach(r => {
+                r.style.display = r.textContent.toLowerCase().includes(term) ? '' : 'none';
+            });
+        }
+
+        // ========== SUBJECTS MANAGEMENT ==========
+        function showSubjectsManagement() {
+            hideAllSections();
+            const container = document.getElementById('subjectsContainer');
+            container.style.display = 'block';
+            renderSubjectsTable();
+        }
+
+        function renderSubjectsTable() {
+            const container = document.getElementById('subjectsContainer');
+            const subjects = getSubjects();
+            container.innerHTML = `
+                <div class="section-header">
+                    <h2><i class="fas fa-book"></i> Manage Subjects</h2>
+                    <button class="btn-add" id="addSubjectBtn"><i class="fas fa-plus"></i> Add New Subject</button>
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="subjectSearch" placeholder="Search subjects..." onkeyup="searchSubjects()">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Subject Name</th>
+                                <th>Category (Department)</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subjectsTableBody">
+                            ${generateSubjectsRows(subjects)}
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top:20px;">Showing ${subjects.length} subjects</div>
+            `;
+            document.getElementById('addSubjectBtn').addEventListener('click', () => showAddSubjectModal(null));
+        }
+
+        function generateSubjectsRows(subjects) {
+            if (!subjects.length) return '<tr><td colspan="5" class="no-data">No subjects found.</td></tr>';
+            return subjects.map(s => `
+                <tr>
+                    <td><span class="code-badge">${s.code}</span></td>
+                    <td>${s.name}</td>
+                    <td>${s.category}</td>
+                    <td><span class="status-badge ${s.status}">${s.status}</span></td>
+                    <td>
+                        <button class="btn-action" onclick="editSubject('${s.id}')" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button class="btn-action delete" onclick="deleteSubject('${s.id}')" title="Delete"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function showAddSubjectModal(existingSubject = null) {
+            const isEdit = existingSubject !== null;
+            const sub = isEdit ? existingSubject : {};
+            const departmentOptions = DEPARTMENTS.map(d => `<option value="${d}" ${sub.category === d ? 'selected' : ''}>${d}</option>`).join('');
+            const modalHTML = `
+                <div class="modal-overlay" id="subjectModal">
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-book"></i> ${isEdit ? 'Edit Subject' : 'Add New Subject'}</h3>
+                            <button class="close-modal" id="closeSubjectModalBtn">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="subjectForm">
+                                <div class="form-group">
+                                    <label>Subject Name *</label>
+                                    <input type="text" id="subjectName" required value="${sub.name || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Subject Code *</label>
+                                    <input type="text" id="subjectCode" required value="${sub.code || ''}" ${isEdit ? 'readonly' : ''}>
+                                    <small>${isEdit ? 'Code cannot be changed' : 'Unique code'}</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>Category (Department)</label>
+                                    <select id="subjectCategory">${departmentOptions}</select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select id="subjectStatus">
+                                        <option value="active" ${sub.status === 'active' ? 'selected' : ''}>Active</option>
+                                        <option value="inactive" ${sub.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                                    </select>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary" id="cancelSubjectModalBtn">Cancel</button>
+                            <button class="btn-admin" id="saveSubjectBtn">${isEdit ? 'Update' : 'Save'}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            
+            document.getElementById('closeSubjectModalBtn').addEventListener('click', closeModal);
+            document.getElementById('cancelSubjectModalBtn').addEventListener('click', closeModal);
+            document.getElementById('saveSubjectBtn').addEventListener('click', () => {
+                if (isEdit) {
+                    updateSubject(sub.id);
+                } else {
+                    saveNewSubject();
+                }
+            });
+        }
+
+        function saveNewSubject() {
+            const name = document.getElementById('subjectName').value.trim();
+            const code = document.getElementById('subjectCode').value.trim().toUpperCase();
+            if (!name || !code) {
+                showNotification('Name and code required', 'error');
+                return;
+            }
+            const subjects = getSubjects();
+            if (subjects.find(s => s.code === code)) {
+                showNotification('Code already exists', 'error');
+                return;
+            }
+            const newSubject = {
+                id: Date.now().toString(),
+                code,
+                name,
+                category: document.getElementById('subjectCategory').value,
+                status: document.getElementById('subjectStatus').value,
+                createdAt: new Date().toISOString()
+            };
+            subjects.push(newSubject);
+            localStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(subjects));
+            closeModal();
+            showNotification('Subject added', 'success');
+            logActivity(`Added subject: ${name}`);
+            showSubjectsManagement();
+        }
+
+        function editSubject(id) {
+            const subject = getSubjects().find(s => String(s.id) === String(id));
+            if (subject) {
+                showAddSubjectModal(subject);
+            } else {
+                showNotification('Subject not found', 'error');
+            }
+        }
+
+        function updateSubject(id) {
+            const subjects = getSubjects();
+            const index = subjects.findIndex(s => String(s.id) === String(id));
+            if (index === -1) return;
+            subjects[index].name = document.getElementById('subjectName').value.trim();
+            subjects[index].category = document.getElementById('subjectCategory').value;
+            subjects[index].status = document.getElementById('subjectStatus').value;
+            localStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(subjects));
+            closeModal();
+            showNotification('Subject updated', 'success');
+            logActivity(`Updated subject: ${subjects[index].name}`);
+            showSubjectsManagement();
+        }
+
+        function deleteSubject(id) {
+            if (!confirm('Delete this subject? This may affect schools that offer it.')) return;
+            let subjects = getSubjects();
+            subjects = subjects.filter(s => String(s.id) !== String(id));
+            localStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(subjects));
+            showNotification('Subject deleted', 'success');
+            logActivity(`Deleted subject ID: ${id}`);
+            showSubjectsManagement();
+        }
+
+        function searchSubjects() {
+            const term = document.getElementById('subjectSearch')?.value.toLowerCase() || '';
+            const rows = document.querySelectorAll('#subjectsTableBody tr');
+            rows.forEach(r => {
+                r.style.display = r.textContent.toLowerCase().includes(term) ? '' : 'none';
+            });
+        }
+
+        // ========== USERS MANAGEMENT ==========
+        function showUsersManagement() {
+            hideAllSections();
+            const container = document.getElementById('usersContainer');
+            container.style.display = 'block';
+            renderUsersTable();
+        }
+
+        function renderUsersTable() {
+            const container = document.getElementById('usersContainer');
+            const users = getUsers();
+            const schools = getSchools();
+            const schoolMap = {};
+            schools.forEach(s => schoolMap[s.code] = s.name);
+            container.innerHTML = `
+                <div class="section-header">
+                    <h2><i class="fas fa-users"></i> All Users</h2>
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="userSearch" placeholder="Search users..." onkeyup="searchUsers()">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>School</th>
+                                <th>Subject/Dept</th>
+                                <th>Joined</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            ${generateUsersRows(users, schoolMap)}
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top:20px;">Showing ${users.length} users</div>
+            `;
+        }
+
+        function generateUsersRows(users, schoolMap) {
+            if (!users.length) return '<tr><td colspan="6" class="no-data">No users yet.</td></tr>';
+            return users.map(u => `
+                <tr>
+                    <td>${u.fullName}</td>
+                    <td>${u.username}</td>
+                    <td>${u.role}</td>
+                    <td>${schoolMap[u.schoolCode] || u.schoolCode}</td>
+                    <td>${u.subject || u.department || u.position || '-'}</td>
+                    <td>${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function searchUsers() {
+            const term = document.getElementById('userSearch')?.value.toLowerCase() || '';
+            const rows = document.querySelectorAll('#usersTableBody tr');
+            rows.forEach(r => {
+                r.style.display = r.textContent.toLowerCase().includes(term) ? '' : 'none';
+            });
+        }
+
+        // ========== SYSTEM SETTINGS (placeholder) ==========
+        function showSystemSettings() {
+            hideAllSections();
+            const container = document.getElementById('settingsContainer');
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div class="section-header"><h2><i class="fas fa-cog"></i> System Settings</h2></div>
+                <div class="dashboard-card">
+                    <p>Settings panel (under development).</p>
+                </div>
+            `;
+        }
+
+        // ========== REPORTS (placeholder) ==========
+        function showReports() {
+            hideAllSections();
+            const container = document.getElementById('reportsContainer');
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div class="section-header"><h2><i class="fas fa-chart-bar"></i> Reports</h2></div>
+                <div class="dashboard-card">
+                    <p>Report generation (under development).</p>
+                </div>
+            `;
+        }
+
+        // ========== RESET DEMO DATA ==========
+        function resetDemoData() {
+            if (!confirm('This will erase all existing data and restore default demo schools, subjects, and users. Continue?')) return;
+            // Clear all relevant storage
+            localStorage.removeItem(STORAGE_KEYS.SCHOOLS);
+            localStorage.removeItem(STORAGE_KEYS.SUBJECTS);
+            localStorage.removeItem(STORAGE_KEYS.USERS);
+            localStorage.removeItem(STORAGE_KEYS.RECORDS);
+            localStorage.removeItem(STORAGE_KEYS.ACTIVITY);
+            // Re-initialize defaults
+            initializeDefaultData();
+            // Also create some demo users (principal, hod, hos, teachers) for the default schools
+            seedDemoUsers();
+            showNotification('Demo data reset successfully', 'success');
+            logActivity('Reset demo data');
+            updateDashboardStats();
+            // Refresh current view if any
+            if (document.getElementById('schoolsContainer').style.display === 'block') showSchoolsManagement();
+            else if (document.getElementById('subjectsContainer').style.display === 'block') showSubjectsManagement();
+            else if (document.getElementById('usersContainer').style.display === 'block') showUsersManagement();
+        }
+
+        function seedDemoUsers() {
+            const schools = getSchools();
+            if (schools.length === 0) return;
+            const school = schools[0]; // use first school for demo
+            const users = [];
+            // Principal
+            users.push({ id: Date.now(), fullName: 'Dr. James Principal', username: 'principal', password: 'password', role: 'principal', schoolCode: school.code, schoolName: school.name, position: 'Principal', createdAt: new Date().toISOString() });
+            // HODs for each department
+            DEPARTMENTS.forEach((dept, idx) => {
+                users.push({ id: Date.now()+idx+1, fullName: `HOD ${dept}`, username: `hod_${dept.toLowerCase()}`, password: 'password', role: 'hod', schoolCode: school.code, schoolName: school.name, department: dept, createdAt: new Date().toISOString() });
+            });
+            // HOS for each subject in school
+            school.subjects.forEach((sub, idx) => {
+                users.push({ id: Date.now()+100+idx, fullName: `HOS ${sub}`, username: `hos_${sub.replace(/\s+/g,'_').toLowerCase()}`, password: 'password', role: 'hos', schoolCode: school.code, schoolName: school.name, subject: sub, createdAt: new Date().toISOString() });
+            });
+            // Teachers for each subject
+            school.subjects.forEach((sub, idx) => {
+                users.push({ id: Date.now()+200+idx, fullName: `${sub} Teacher`, username: `teacher_${sub.replace(/\s+/g,'_').toLowerCase()}`, password: 'password', role: 'teacher', schoolCode: school.code, schoolName: school.name, subject: sub, createdAt: new Date().toISOString() });
+            });
+            localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+        }
+
+        // ========== UTILITIES ==========
+        function hideAllSections() {
+            ['schoolsContainer', 'subjectsContainer', 'usersContainer', 'settingsContainer', 'reportsContainer'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+        }
+
+        function closeModal() {
+            const modals = document.querySelectorAll('.modal-overlay');
+            modals.forEach(m => m.remove());
+        }
+
+        function showNotification(message, type = 'info') {
+            const existing = document.querySelector('.notification');
+            if (existing) existing.remove();
+            const notif = document.createElement('div');
+            notif.className = `notification ${type}`;
+            notif.innerHTML = `<i class="fas ${type==='success'?'fa-check-circle':type==='error'?'fa-exclamation-circle':'fa-info-circle'}"></i> <span>${message}</span> <button onclick="this.parentElement.remove()">&times;</button>`;
+            document.body.appendChild(notif);
+            setTimeout(() => { if (notif.parentElement) notif.remove(); }, 5000);
+        }
+
+        function logActivity(description) {
+            const activity = JSON.parse(localStorage.getItem(STORAGE_KEYS.ACTIVITY)) || [];
+            activity.unshift({ id: Date.now(), timestamp: new Date().toISOString(), user: localStorage.getItem('admin_username') || 'Admin', description });
+            if (activity.length > 100) activity.pop();
+            localStorage.setItem(STORAGE_KEYS.ACTIVITY, JSON.stringify(activity));
+        }
+
+        function getTodayActivityCount() {
+            const activity = JSON.parse(localStorage.getItem(STORAGE_KEYS.ACTIVITY)) || [];
+            const today = new Date().toDateString();
+            return activity.filter(a => new Date(a.timestamp).toDateString() === today).length;
+        }
+
+        // Data getters
+        function getSchools() { return JSON.parse(localStorage.getItem(STORAGE_KEYS.SCHOOLS)) || []; }
+        function getSubjects() { return JSON.parse(localStorage.getItem(STORAGE_KEYS.SUBJECTS)) || []; }
+        function getUsers() { return JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS)) || []; }
+        function getRecords() { return JSON.parse(localStorage.getItem(STORAGE_KEYS.RECORDS)) || []; }
+
+        // Expose functions to global scope for onclick handlers
+        window.searchSchools = searchSchools;
+        window.editSchool = editSchool;
+        window.deleteSchool = deleteSchool;
+        window.searchSubjects = searchSubjects;
+        window.editSubject = editSubject;
+        window.deleteSubject = deleteSubject;
+        window.searchUsers = searchUsers;
+        window.closeModal = closeModal;
+        window.showNotification = showNotification;
+    </script>
+</body>
+</html>
+Key 
